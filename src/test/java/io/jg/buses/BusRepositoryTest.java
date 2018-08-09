@@ -21,9 +21,12 @@ public class BusRepositoryTest {
     @Autowired
     private BusRepository busRepository;
 
+    @Autowired
+    private String appToken;
+
     @Test
     public void testGetBuses() {
-        List<Map<String, Object>> s = busRepository.getBuses();
+        List<Map<String, Object>> s = busRepository.getBuses(appToken);
         assertNotNull(s);
         assertTrue(s.size() > 0);
     }

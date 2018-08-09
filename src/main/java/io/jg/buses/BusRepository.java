@@ -1,7 +1,10 @@
 package io.jg.buses;
 
+import feign.Headers;
+import feign.Param;
 import feign.RequestLine;
 import org.springframework.stereotype.Repository;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
 import java.util.Map;
@@ -10,5 +13,6 @@ import java.util.Map;
 public interface BusRepository {
 
     @RequestLine("GET /")
-    public List<Map<String, Object>> getBuses();
+    @Headers({"X-App-Token: {token}"})
+    public List<Map<String, Object>> getBuses(@Param("token") String token);
 }

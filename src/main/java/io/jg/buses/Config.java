@@ -29,6 +29,14 @@ public class Config {
     @Value("${GOOGLE_PROJECT_ID}")
     private String googleProjectId;
 
+    @Value("${APP_TOKEN}")
+    public String appToken;
+
+    @Bean
+    public String appToken() {
+        return appToken;
+    }
+
     @Bean
     public BusRepository slackRepository() {
         return Feign.builder()

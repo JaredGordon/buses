@@ -12,16 +12,17 @@ import java.util.Map;
 public class BusController {
 
     private BusRepository busRepository;
-
     private BigQuery bigQuery;
+    private String appToken;
 
-    public BusController(BusRepository busRepository, BigQuery bigQuery) {
+    public BusController(BusRepository busRepository, BigQuery bigQuery, String appToken) {
         this.busRepository = busRepository;
         this.bigQuery = bigQuery;
+        this.appToken = appToken;
     }
 
     void batchLoad() {
-        List<Map<String, Object>> buses = busRepository.getBuses();
+        List<Map<String, Object>> buses = busRepository.getBuses(appToken);
 
         TableId tableId = TableId.of("buses", "buses");
         InsertAllRequest.Builder builder = InsertAllRequest.newBuilder(tableId);

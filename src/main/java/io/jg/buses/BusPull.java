@@ -1,6 +1,7 @@
 package io.jg.buses;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -8,8 +9,13 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class BusPull {
 
-    @Scheduled(fixedRate = 5000)
+    @Autowired
+    private BusController busController;
+
+    @Scheduled(fixedRateString = "${BUS_PULL_INTERVAL}")
     public void pull() {
-        log.info("hello!");
+        log.info("loading more segments ...");
+        busController.batchLoad();
+        log.info("... done!");
     }
 }
