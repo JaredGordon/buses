@@ -7,8 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @RestController
 @Slf4j
@@ -22,7 +22,7 @@ public class BusController {
     }
 
     @GetMapping("/buses")
-    public ResponseEntity<Set<Map<String, Object>>> getBuses() {
+    public ResponseEntity<List<Map<String, Object>>> getBuses() {
         return new ResponseEntity<>(busRepository.getBuses(), HttpStatus.OK);
     }
 }

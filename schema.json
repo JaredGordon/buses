@@ -1,0 +1,87 @@
+[
+  {
+    "name": "_comments",
+    "type": "STRING",
+    "mode": "Nullable",
+    "description": "Segment comments."
+  },
+  {
+    "name": "_direction",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Traffic flow direction for the segment."
+  },
+  {
+    "name": "_fromst",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Start street for the segment in the direction of traffic flow."
+  },
+  {
+    "name": "_last_updt",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "When the record was last updated."
+  },
+  {
+    "name": "_length",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Length of the segment in miles."
+  },
+  {
+    "name": "_lif_lat",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Start latitude."
+  },
+  {
+    "name": "_lit_lat",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "End latitude."
+  },
+  {
+    "name": "_lit_lon",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "End longitude."
+  },
+  {
+    "name": "_strheading",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "The position of the segment in the address grid. North, South, East, or West of State and Madison."
+  },
+  {
+    "name": "_tost",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "End street for the segment in the direction of traffic flow."
+  },
+  {
+    "name": "_traffic",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "Current speed."
+  },
+  {
+    "name": "segmentid",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique arbitrary number to represent each segment."
+  },
+  {
+    "name": "start_lon",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Start longitude."
+  },
+  {
+    "name": "street",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Street name of the traffic segment."
+  }
+]
+
