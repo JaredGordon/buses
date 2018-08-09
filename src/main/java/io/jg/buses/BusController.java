@@ -1,28 +1,62 @@
 package io.jg.buses;
 
-import lombok.Data;
+import com.google.cloud.bigquery.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
-@RestController
+@Component
 @Slf4j
-@Data
 public class BusController {
 
     private BusRepository busRepository;
 
-    public BusController(BusRepository slackRepository) {
-        setBusRepository(slackRepository);
+    private BigQuery bigQuery;
+
+    public BusController(BusRepository busRepository, BigQuery bigQuery) {
+        this.busRepository = busRepository;
+        this.bigQuery = bigQuery;
     }
 
-    @GetMapping("/buses")
-    public ResponseEntity<List<Map<String, Object>>> getBuses() {
-        return new ResponseEntity<>(busRepository.getBuses(), HttpStatus.OK);
+    void batchLoad() {
+        List<Map<String, Object>> buses = busRepository.getBuses();
+
+        TableId tableId = TableId.of("buses", "buses");
+        InsertAllRequest.Builder builder = InsertAllRequest.newBuilder(tableId);
+
+        for (Map<String, Object> segment : buses) {
+            String rowId = segment.get("segmentid").toString() + ":" + segment.get("_last_updt");
+            builder.addRow(rowId, segment);
+        }
+
+        InsertAllResponse response = bigQuery.insertAll(builder.build());
+        if (response.hasErrors()) {
+            for (Map.Entry<Long, List<BigQueryError>> entry : response.getInsertErrors().entrySet()) {
+                log.error(entry.toString());
+            }
+        }
+    }
+
+    long segmentCount() {
+        String query = "SELECT count(*) from buses.buses";
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
+
+        long count = 0l;
+        Iterable<FieldValueList> fields = null;
+        try {
+            fields = bigQuery.query(queryConfig).iterateAll();
+        } catch (InterruptedException e) {
+            log.error("error processing count query.", e);
+            return count;
+        }
+
+        for (FieldValueList row : fields) {
+            for (FieldValue val : row) {
+                count = val.getLongValue();
+            }
+        }
+        return count;
     }
 }
