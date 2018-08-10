@@ -15,7 +15,7 @@ public class BusPull {
     @Scheduled(fixedRateString = "${BUS_PULL_INTERVAL}")
     public void pull() {
         log.info("loading more segments ...");
-        busController.batchLoad();
+        busController.publishEvents();
         log.info("... done!");
     }
 }

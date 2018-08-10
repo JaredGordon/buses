@@ -1,6 +1,7 @@
 package io.jg.buses;
 
 import lombok.extern.slf4j.Slf4j;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Slf4j
+@Ignore
 public class BusControllerTest {
 
     @Autowired
@@ -24,6 +26,11 @@ public class BusControllerTest {
         long after = busController.segmentCount();
 
         assertTrue(before <= after);
+    }
+
+    @Test
+    public void testPublish() {
+        busController.publishEvents();
     }
 
     @Test
