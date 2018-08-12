@@ -17,7 +17,6 @@ import static org.junit.Assert.assertTrue;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Slf4j
-@Ignore
 public class BusRepositoryTest {
 
     @Autowired
