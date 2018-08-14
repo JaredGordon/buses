@@ -1,4 +1,7 @@
 target
 .idea
 bus-data.json
-buses.json
+node_modules
+package.json
+try-latest.js
+try-data.js

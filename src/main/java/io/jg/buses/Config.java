@@ -3,6 +3,8 @@ package io.jg.buses;
 import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.cloud.datastore.Datastore;
+import com.google.cloud.datastore.DatastoreOptions;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.pubsub.v1.ProjectTopicName;
 import feign.Feign;
@@ -52,7 +54,7 @@ public class Config {
     }
 
     @Bean
-    public CredentialsProvider pubCredentialsProvider() {
+    public CredentialsProvider credentialsProvider() {
         try {
             InputStream inputStream = Config.class.getResourceAsStream(googlePubCredentials);
             ServiceAccountCredentials serviceAccountCredentials = ServiceAccountCredentials.fromStream(inputStream);
@@ -71,5 +73,10 @@ public class Config {
             log.error("error creating publisher.", e);
             return null;
         }
+    }
+
+    @Bean
+    public Datastore datastore() throws Exception {
+        return DatastoreOptions.newBuilder().setCredentials(credentialsProvider().getCredentials()).build().getService();
     }
 }
