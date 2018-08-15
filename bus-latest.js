@@ -5,9 +5,8 @@ exports.subscribe = function (event, callback) {
 
   // Your Google Cloud Platform project ID
   const projectId = 'celestial-brand-212615';
-
   const PubSubMessage = event.data;
-  const incomingData = PubSubMessage.data ? Buffer.from(PubSubMessage.data, 'base64').toString() : "{'_direction': 'EB', '_fromst': 'California', '_last_updt': '2011-10-28 11:50:50.0', '_length': '0.48', '_lif_lat': '42.0119763841', '_lit_lat': '42.0121628852', '_lit_lon': '-87.6902422854', '_strheading': 'W', '_tost': 'Western', '_traffic': '-1', 'segmentid': '1002', 'start_lon': '-87.6997466265', 'street': 'Touhy'}";
+  const incomingData = PubSubMessage.data ? Buffer.from(PubSubMessage.data, 'base64').toString() : "";
 
   const jsonData = JSON.parse(incomingData);
   var rows = [jsonData];
@@ -47,13 +46,14 @@ exports.subscribe = function (event, callback) {
     data: {
       _direction: jsonData._direction,
       _fromst: jsonData._fromst,
-      _last_updt: jsonData._last_updt,
-      _length: jsonData._length,
+      _last_updt: new Date(jsonData._last_updt),
+      _length: parseFloat(jsonData._length),
       _lif: geoLif,
       _lit: geoLit,
       _strheading: jsonData._strheading,
       _tost: jsonData._tost,
-      _traffic: jsonData._traffic,
+      _traffic: parseInt(jsonData._traffic),
+      segmentid: jsonData.segmentid,
       street: jsonData.street
      },
     };

@@ -4,13 +4,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutures;
+import com.google.cloud.Timestamp;
 import com.google.cloud.datastore.*;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 @RestController
@@ -37,12 +43,17 @@ public class BusController {
             busMap.put(bus.get("segmentid").toString(), bus);
         }
 
-        Set<String[]> latest = getLatest();
+        Set<Object[]> latest = getLatest();
         Set<String> dupeKeys = new HashSet<>();
-        for (String[] keys : latest) {
+        for (Object[] keys : latest) {
             Map<String, Object> bus = (Map<String, Object>) busMap.get(keys[0]);
-            if (bus != null && keys[1].equals(bus.get("_last_updt"))) {
-                dupeKeys.add(keys[0]);
+
+            if (bus == null) {
+                continue;
+            }
+
+            if (sameDate((Timestamp) keys[1], bus.get("_last_updt").toString())) {
+                dupeKeys.add(keys[0].toString());
             }
         }
 
@@ -77,22 +88,62 @@ public class BusController {
         }
     }
 
-    Set<String[]> getLatest() {
+    private boolean sameDate(Timestamp timestamp, String s) {
+        Date gd = timestamp.toDate();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        try {
+            return sdf.parse(s).compareTo(gd) == 0;
+        } catch (ParseException e) {
+            log.error("invalid date: " + s);
+            return false;
+        }
+    }
+
+    @GetMapping("/")
+    public ResponseEntity<List<Map<String, Object>>> latest() {
         Query<Entity> query = Query.newEntityQueryBuilder()
                 .setKind("segment")
                 .build();
 
         QueryResults<Entity> res = datastore.run(query);
-        Set<String[]> buses = new HashSet<>();
+        List<Map<String, Object>> buses = new ArrayList<>();
+        while (res.hasNext()) {
+            Entity bus = res.next();
+            Map<String, Object> m = new HashMap<>();
+
+            m.put("_direction", bus.getString("_direction"));
+            m.put("fromst", bus.getString("_fromst"));
+            m.put("_last_updt", bus.getString("_last_updt"));
+            m.put("_length:", bus.getString("_length"));
+            m.put("_lif", bus.getLatLng("_lif"));
+            m.put("_lit", bus.getLatLng("_lit"));
+            m.put("_strheading", bus.getString("_strheading"));
+            m.put("_tost", bus.getString("_tost"));
+            m.put("_traffic", bus.getString("_traffic"));
+            m.put("street", bus.getString("street"));
+            buses.add(m);
+        }
+
+        return new ResponseEntity<>(buses, HttpStatus.OK);
+    }
+
+    Set<Object[]> getLatest() {
+        Query<Entity> query = Query.newEntityQueryBuilder()
+                .setKind("segment")
+                .build();
+
+        QueryResults<Entity> res = datastore.run(query);
+        Set<Object[]> buses = new HashSet<>();
 
         String segmentid = null;
-        String update = null;
+        Timestamp update = null;
         while (res.hasNext()) {
             Entity bus = res.next();
             try {
-                segmentid = bus.getString("segmentid");
-                update = bus.getString("_last_updt");
-                buses.add(new String[]{segmentid, update});
+                segmentid = bus.getString("segmentid").trim();
+                update = bus.getTimestamp("_last_updt");
+                buses.add(new Object[]{segmentid, update});
             } catch (DatastoreException e) {
                 log.info("bus is missing segmentid and/or _last_updt.", bus.toString());
             }
