@@ -38,8 +38,13 @@ public class BusController {
     void publishEvents() {
         List<Map<String, Object>> buses = busRepository.getBuses(appToken);
 
+
         Map<String, Object> busMap = new HashMap<>();
         for (Map<String, Object> bus : buses) {
+
+            //fix the timezones on the buses
+            bus.put("_last_updt", fixTimezone(bus.get("_last_updt").toString()));
+
             busMap.put(bus.get("segmentid").toString(), bus);
         }
 
@@ -112,15 +117,16 @@ public class BusController {
             Entity bus = res.next();
             Map<String, Object> m = new HashMap<>();
 
+            m.put("segmentid", bus.getKey().getName());
             m.put("_direction", bus.getString("_direction"));
             m.put("fromst", bus.getString("_fromst"));
-            m.put("_last_updt", bus.getString("_last_updt"));
-            m.put("_length:", bus.getString("_length"));
+            m.put("_last_updt", bus.getTimestamp("_last_updt"));
+            m.put("_length:", bus.getValue("_length"));
             m.put("_lif", bus.getLatLng("_lif"));
             m.put("_lit", bus.getLatLng("_lit"));
             m.put("_strheading", bus.getString("_strheading"));
             m.put("_tost", bus.getString("_tost"));
-            m.put("_traffic", bus.getString("_traffic"));
+            m.put("_traffic", bus.getLong("_traffic"));
             m.put("street", bus.getString("street"));
             buses.add(m);
         }
@@ -149,5 +155,20 @@ public class BusController {
             }
         }
         return buses;
+    }
+
+    String fixTimezone(String date) {
+        Calendar utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        sdf.setTimeZone(TimeZone.getTimeZone("America/Chicago"));
+        try {
+            Date d = sdf.parse(date);
+            utcCal.setTime(d);
+            return Timestamp.of(utcCal.getTime()).toString();
+        } catch (ParseException e) {
+            log.error("invalid date: " + date, e);
+            return Timestamp.now().toString();
+        }
     }
 }

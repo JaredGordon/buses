@@ -1,18 +1,16 @@
 package io.jg.buses;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.Timestamp;
 import com.google.cloud.datastore.Datastore;
+import com.google.cloud.datastore.KeyFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.util.StreamUtils;
 
-import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -32,13 +30,6 @@ public class BusControllerTest {
     @Test
     public void testPublish() {
         busController.publishEvents();
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> getBuses(String fileName) throws Exception {
-        String contents = StreamUtils.copyToString(new ClassPathResource(fileName).getInputStream(), Charset.defaultCharset());
-        return (List<Map<String, Object>>) new ObjectMapper().readValue(contents, List.class);
-
     }
 
     @Test
@@ -67,5 +58,44 @@ public class BusControllerTest {
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
         Date d = sdf.parse(bt);
         assertEquals(0, d.compareTo(gd));
+    }
+
+    @Test
+    public void testFixTimezone() {
+        String date = "2018-08-20 13:40:04.0";
+        assertEquals("2018-08-20T18:40:04Z", busController.fixTimezone(date));
+    }
+
+    @Test
+    @Ignore
+    public void trafficMap() {
+        //get latest
+        List<Map<String, Object>> latest = busController.latest().getBody();
+        List<Map<String, Object>> traffic = new ArrayList<>();
+
+        //throw out traffic < 0
+        for (Map<String, Object> bus : latest) {
+            if ((Integer) bus.get("_traffic") > 0) {
+                traffic.add(bus);
+            }
+        }
+
+        //sort by _last_update
+
+
+        //pick top 25 most recent
+
+        //build out a query string
+    }
+
+    @Test
+    @Ignore
+    public void deleteStuff() {
+        List<Map<String, Object>> buses = busController.latest().getBody();
+        KeyFactory keyFactory = datastore.newKeyFactory();
+        keyFactory.setKind("segment");
+        for (Map<String, Object> bus : buses) {
+            datastore.delete(keyFactory.newKey(bus.get("segmentid").toString()));
+        }
     }
 }
