@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.text.SimpleDateFormat;
@@ -19,6 +20,7 @@ import static org.junit.Assert.*;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Slf4j
+@ActiveProfiles("test")
 public class BusControllerTest {
 
     @Autowired
@@ -28,6 +30,7 @@ public class BusControllerTest {
     private Datastore datastore;
 
     @Test
+    @Ignore
     public void testPublish() {
         busController.publishEvents();
     }
@@ -97,5 +100,30 @@ public class BusControllerTest {
         for (Map<String, Object> bus : buses) {
             datastore.delete(keyFactory.newKey(bus.get("segmentid").toString()));
         }
+    }
+
+    @Test
+    public void testDeDupe() {
+        List<Map<String, Object>> busData = busController.getBusData();
+        assertNotNull(busData);
+        int size = busData.size();
+        assertTrue(size > 0);
+        Map<String, Object> busMap = busController.dedupe(busData);
+        assertNotNull(busMap);
+        int mapSize = busMap.size();
+        assertTrue(size > mapSize);
+    }
+
+    @Test
+    public void testIsRecent() {
+        assertFalse(busController.isRecent(null));
+        assertFalse(busController.isRecent("foo"));
+        assertTrue(busController.isRecent(Timestamp.now().toString()));
+        long oneHourAgo = Timestamp.now().getSeconds() - 60 * 60;
+        Timestamp timestamp2 = Timestamp.ofTimeSecondsAndNanos(oneHourAgo, 0);
+        assertTrue(busController.isRecent(timestamp2.toString()));
+        long oneDayAgo = Timestamp.now().getSeconds() - 60 * 60 * 24;
+        Timestamp timestamp3 = Timestamp.ofTimeSecondsAndNanos(oneDayAgo, 0);
+        assertFalse(busController.isRecent(timestamp3.toString()));
     }
 }

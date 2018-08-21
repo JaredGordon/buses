@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.threeten.bp.format.DateTimeParseException;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -35,37 +36,12 @@ public class BusController {
         this.appToken = appToken;
     }
 
+    List<Map<String, Object>> getBusData() {
+        return busRepository.getBuses(appToken);
+    }
+
     void publishEvents() {
-        List<Map<String, Object>> buses = busRepository.getBuses(appToken);
-
-
-        Map<String, Object> busMap = new HashMap<>();
-        for (Map<String, Object> bus : buses) {
-
-            //fix the timezones on the buses
-            bus.put("_last_updt", fixTimezone(bus.get("_last_updt").toString()));
-
-            busMap.put(bus.get("segmentid").toString(), bus);
-        }
-
-        Set<Object[]> latest = getLatest();
-        Set<String> dupeKeys = new HashSet<>();
-        for (Object[] keys : latest) {
-            Map<String, Object> bus = (Map<String, Object>) busMap.get(keys[0]);
-
-            if (bus == null) {
-                continue;
-            }
-
-            if (sameDate((Timestamp) keys[1], bus.get("_last_updt").toString())) {
-                dupeKeys.add(keys[0].toString());
-            }
-        }
-
-        for (String dupeKey : dupeKeys) {
-            busMap.remove(dupeKey);
-        }
-
+        Map<String, Object> busMap = dedupe(getBusData());
         log.info("publishing: " + busMap.size() + " events.");
 
         List<ApiFuture<String>> futures = new ArrayList<>();
@@ -93,16 +69,70 @@ public class BusController {
         }
     }
 
-    private boolean sameDate(Timestamp timestamp, String s) {
-        Date gd = timestamp.toDate();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        try {
-            return sdf.parse(s).compareTo(gd) == 0;
-        } catch (ParseException e) {
-            log.error("invalid date: " + s);
+    Map<String, Object> dedupe(List<Map<String, Object>> buses) {
+        Map<String, Object> busMap = new HashMap<>();
+        for (Map<String, Object> bus : buses) {
+
+            //fix the timezones on the buses
+            bus.put("_last_updt", fixTimezone(bus.get("_last_updt").toString()));
+
+            //is the event within the past 24 hours? If not, ignore it.
+            if (isRecent(bus.get("_last_updt").toString())) {
+                busMap.put(bus.get("segmentid").toString(), bus);
+            }
+        }
+
+        Set<Object[]> latest = getLatest();
+        Set<String> dupeKeys = new HashSet<>();
+        for (Object[] keys : latest) {
+            Map<String, Object> bus = (Map<String, Object>) busMap.get(keys[0]);
+
+            if (bus == null) {
+                continue;
+            }
+
+            if (sameDate((Timestamp) keys[1], bus.get("_last_updt"))) {
+                dupeKeys.add(keys[0].toString());
+            }
+        }
+
+        for (String dupeKey : dupeKeys) {
+            busMap.remove(dupeKey);
+        }
+
+        return busMap;
+    }
+
+    boolean isRecent(String s) {
+        if (s == null) {
             return false;
         }
+
+        Timestamp timestamp;
+        try {
+            timestamp = Timestamp.parseTimestamp(s);
+        } catch (DateTimeParseException e) {
+            log.error("invalid date format: " + s);
+            return false;
+        }
+
+        long now = Timestamp.now().getSeconds();
+        long difference = now - timestamp.getSeconds();
+        return difference < 60 * 60 * 24;
+    }
+
+    private boolean sameDate(Timestamp timestamp1, Object o) {
+        if (timestamp1 == null && o == null) {
+            return true;
+        }
+
+        if (timestamp1 == null || o == null) {
+            return false;
+        }
+
+        Timestamp timestamp2 = Timestamp.parseTimestamp(o.toString());
+
+        return timestamp1.compareTo(timestamp2) == 0;
     }
 
     @GetMapping("/")
@@ -142,8 +172,8 @@ public class BusController {
         QueryResults<Entity> res = datastore.run(query);
         Set<Object[]> buses = new HashSet<>();
 
-        String segmentid = null;
-        Timestamp update = null;
+        String segmentid;
+        Timestamp update;
         while (res.hasNext()) {
             Entity bus = res.next();
             try {
