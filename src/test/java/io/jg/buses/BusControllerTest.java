@@ -37,15 +37,15 @@ public class BusControllerTest {
 
     @Test
     public void testGetLatest() {
-        Set<Object[]> buses = busController.getLatest();
+        Set<String[]> buses = busController.getLatest();
         assertNotNull(buses);
     }
 
     @Test
-    public void testGet() {
-        List<Map<String, Object>> buses = busController.latest().getBody();
-        assertNotNull(buses);
-        assertTrue(buses.size() > 0);
+    public void testTraffic() {
+        String html = busController.traffic();
+        assertNotNull(html);
+//        log.info(html);
     }
 
     @Test
@@ -71,30 +71,8 @@ public class BusControllerTest {
 
     @Test
     @Ignore
-    public void trafficMap() {
-        //get latest
-        List<Map<String, Object>> latest = busController.latest().getBody();
-        List<Map<String, Object>> traffic = new ArrayList<>();
-
-        //throw out traffic < 0
-        for (Map<String, Object> bus : latest) {
-            if ((Integer) bus.get("_traffic") > 0) {
-                traffic.add(bus);
-            }
-        }
-
-        //sort by _last_update
-
-
-        //pick top 25 most recent
-
-        //build out a query string
-    }
-
-    @Test
-    @Ignore
     public void deleteStuff() {
-        List<Map<String, Object>> buses = busController.latest().getBody();
+        List<Map<String, Object>> buses = busController.latest();
         KeyFactory keyFactory = datastore.newKeyFactory();
         keyFactory.setKind("segment");
         for (Map<String, Object> bus : buses) {
@@ -125,5 +103,23 @@ public class BusControllerTest {
         long oneDayAgo = Timestamp.now().getSeconds() - 60 * 60 * 24;
         Timestamp timestamp3 = Timestamp.ofTimeSecondsAndNanos(oneDayAgo, 0);
         assertFalse(busController.isRecent(timestamp3.toString()));
+    }
+
+    @Test
+    public void testSameDate() {
+        Timestamp now = Timestamp.now();
+        assertTrue(busController.sameDate(now.toString(), now.toString()));
+        long seconds = now.getSeconds();
+        Date d = new Date(seconds * 1000);
+        Timestamp timestamp1 = Timestamp.of(d);
+        Timestamp timestamp2 = Timestamp.parseTimestamp(timestamp1.toString());
+        assertTrue(busController.sameDate(timestamp1.toString(), timestamp2.toString()));
+    }
+
+    @Test
+    public void testBuildBusURL() {
+        String buses = busController.busLocations();
+        assertNotNull(buses);
+//        log.info(buses);
     }
 }

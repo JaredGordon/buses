@@ -10,9 +10,8 @@ import com.google.cloud.pubsub.v1.Publisher;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.threeten.bp.format.DateTimeParseException;
 
@@ -82,17 +81,17 @@ public class BusController {
             }
         }
 
-        Set<Object[]> latest = getLatest();
+        Set<String[]> latest = getLatest();
         Set<String> dupeKeys = new HashSet<>();
-        for (Object[] keys : latest) {
+        for (String[] keys : latest) {
             Map<String, Object> bus = (Map<String, Object>) busMap.get(keys[0]);
 
             if (bus == null) {
                 continue;
             }
 
-            if (sameDate((Timestamp) keys[1], bus.get("_last_updt"))) {
-                dupeKeys.add(keys[0].toString());
+            if (sameDate(keys[1], bus.get("_last_updt").toString())) {
+                dupeKeys.add(keys[0]);
             }
         }
 
@@ -121,30 +120,104 @@ public class BusController {
         return difference < 60 * 60 * 24;
     }
 
-    private boolean sameDate(Timestamp timestamp1, Object o) {
-        if (timestamp1 == null && o == null) {
+    boolean sameDate(String s1, String s2) {
+        if (s1 == null && s2 == null) {
             return true;
         }
 
-        if (timestamp1 == null || o == null) {
+        if (s1 == null || s2 == null) {
             return false;
         }
 
-        Timestamp timestamp2 = Timestamp.parseTimestamp(o.toString());
+        Timestamp timestamp1 = Timestamp.parseTimestamp(s1);
+        Timestamp timestamp2 = Timestamp.parseTimestamp(s2);
 
         return timestamp1.compareTo(timestamp2) == 0;
     }
 
-    @GetMapping("/")
-    public ResponseEntity<List<Map<String, Object>>> latest() {
+    private QueryResults<Entity> query(String kind, String orderBy, int rows) {
+        StructuredQuery.OrderBy ob = StructuredQuery.OrderBy.desc(orderBy);
         Query<Entity> query = Query.newEntityQueryBuilder()
-                .setKind("segment")
+                .setKind(kind).setLimit(rows).addOrderBy(ob)
                 .build();
 
-        QueryResults<Entity> res = datastore.run(query);
+        return datastore.run(query);
+    }
+
+    @GetMapping("/buses")
+    @ResponseBody
+    public String busLocations() {
+        QueryResults<Entity> res = query("segment", "_last_updt", 250);
+        List<Map<String, Object>> buses = busesFromResults(res);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(header());
+
+        for (Map<String, Object> bus : buses) {
+            sb.append("%7C");
+            sb.append(bus.get("_lit").toString().replaceAll("\\s+", ""));
+        }
+
+        sb.append(footer());
+
+        return sb.toString();
+    }
+
+    private String header() {
+        return "<html><head></head>" +
+                "<body style=\"margin: 0px; background: #0e0e0e;\">" +
+                "<style> .marginauto { margin: 10px auto 20px; display: block; } </style>" +
+                "<img class=\"marginauto\" style=\"-webkit-user-select: none;\"" +
+                " src=\"https://maps.googleapis.com/maps/api/staticmap?maptype=hybrid&size=600x800&scale=4&markers=size:tiny%7Ccolor:0xFFFF00";
+    }
+
+    private String footer() {
+        return "&key=AIzaSyB7FZ3K6JYlwFAQ-w2PMhq6VM9JCQwbmBg" +
+                "\" width=\"600\" height=\"641\"></body></html>";
+    }
+
+    @GetMapping("/traffic")
+    public String traffic() {
+        QueryResults<Entity> res = query("traffic", "_last_updt", 100);
+        List<Map<String, Object>> buses = busesFromResults(res);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(header());
+
+        for (Map<String, Object> bus : buses) {
+            int traffic = Integer.parseInt(bus.get("_traffic").toString());
+
+            String color;
+            if (traffic < 10) {
+                color = "color:red";
+            } else if (traffic < 15) {
+                color = "color:orange";
+            } else if (traffic < 20) {
+                color = "color:yellow";
+            } else {
+                color = "color:green";
+            }
+            sb.append("&markers=size:tiny");
+            sb.append("%7C");
+            sb.append(color);
+            sb.append("%7C");
+            sb.append(bus.get("_lit").toString().replaceAll("\\s+", ""));
+        }
+
+        sb.append(footer());
+
+        return sb.toString();
+    }
+
+    @GetMapping("/")
+    public List<Map<String, Object>> latest() {
+        return busesFromResults(query("segment", "_last_updt", 1000));
+    }
+
+    private List<Map<String, Object>> busesFromResults(QueryResults<Entity> queryResults) {
         List<Map<String, Object>> buses = new ArrayList<>();
-        while (res.hasNext()) {
-            Entity bus = res.next();
+        while (queryResults.hasNext()) {
+            Entity bus = queryResults.next();
             Map<String, Object> m = new HashMap<>();
 
             m.put("segmentid", bus.getKey().getName());
@@ -160,26 +233,25 @@ public class BusController {
             m.put("street", bus.getString("street"));
             buses.add(m);
         }
-
-        return new ResponseEntity<>(buses, HttpStatus.OK);
+        return buses;
     }
 
-    Set<Object[]> getLatest() {
+    Set<String[]> getLatest() {
         Query<Entity> query = Query.newEntityQueryBuilder()
                 .setKind("segment")
                 .build();
 
         QueryResults<Entity> res = datastore.run(query);
-        Set<Object[]> buses = new HashSet<>();
+        Set<String[]> buses = new HashSet<>();
 
         String segmentid;
-        Timestamp update;
+        String update;
         while (res.hasNext()) {
             Entity bus = res.next();
             try {
                 segmentid = bus.getString("segmentid").trim();
-                update = bus.getTimestamp("_last_updt");
-                buses.add(new Object[]{segmentid, update});
+                update = bus.getTimestamp("_last_updt").toString();
+                buses.add(new String[]{segmentid, update});
             } catch (DatastoreException e) {
                 log.info("bus is missing segmentid and/or _last_updt.", bus.toString());
             }
