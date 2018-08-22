@@ -36,11 +36,19 @@ public class Config {
     private String topicName;
 
     @Value("${APP_TOKEN}")
-    public String appToken;
+    private String appToken;
+
+    @Value("${MAP_TOKEN}")
+    private String mapToken;
 
     @Bean
     public String appToken() {
         return appToken;
+    }
+
+    @Bean
+    public String mapToken() {
+        return mapToken;
     }
 
     @Bean

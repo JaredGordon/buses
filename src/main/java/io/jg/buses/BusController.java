@@ -26,13 +26,15 @@ public class BusController {
     private BusRepository busRepository;
     private Publisher publisher;
     private String appToken;
+    private String mapToken;
     private Datastore datastore;
 
-    public BusController(BusRepository busRepository, Publisher publisher, Datastore datastore, String appToken) {
+    public BusController(BusRepository busRepository, Publisher publisher, Datastore datastore, String appToken, String mapToken) {
         this.busRepository = busRepository;
         this.publisher = publisher;
         this.datastore = datastore;
         this.appToken = appToken;
+        this.mapToken = mapToken;
     }
 
     List<Map<String, Object>> getBusData() {
@@ -172,7 +174,8 @@ public class BusController {
     }
 
     private String footer() {
-        return "&key=AIzaSyB7FZ3K6JYlwFAQ-w2PMhq6VM9JCQwbmBg" +
+        return "&key=" +
+                mapToken +
                 "\" width=\"600\" height=\"641\"></body></html>";
     }
 
