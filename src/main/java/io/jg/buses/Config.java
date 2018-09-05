@@ -52,7 +52,7 @@ public class Config {
     }
 
     @Bean
-    public BusRepository slackRepository() {
+    public BusRepository busRepository() {
         return Feign.builder()
                 .encoder(new GsonEncoder())
                 .decoder(new GsonDecoder())

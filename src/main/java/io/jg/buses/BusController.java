@@ -149,7 +149,7 @@ public class BusController {
     @GetMapping("/buses")
     @ResponseBody
     public String busLocations() {
-        QueryResults<Entity> res = query("segment", "_last_updt", 250);
+        QueryResults<Entity> res = query("segment", "_last_updt", 200);
         List<Map<String, Object>> buses = busesFromResults(res);
 
         StringBuilder sb = new StringBuilder();

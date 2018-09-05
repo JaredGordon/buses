@@ -4,7 +4,6 @@ import feign.Headers;
 import feign.Param;
 import feign.RequestLine;
 import org.springframework.stereotype.Repository;
-import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
 import java.util.Map;
