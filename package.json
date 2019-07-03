@@ -1,0 +1,10 @@
+{
+  "name": "try-traffic",
+  "version": "0.0.1",
+  "private": true,
+  "license": "Apache-2.0",
+  "author": "Google Inc.",
+  "dependencies": {
+    "@google-cloud/datastore": "^1.4.1"
+  }
+}

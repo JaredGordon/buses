@@ -2,8 +2,6 @@ target
 .idea
 bus-data.json
 node_modules
-package.json
-try-latest.js
-try-data.js
 application.properties
 bus_history.csv
+*.iml
